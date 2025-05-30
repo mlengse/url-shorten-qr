@@ -1,35 +1,23 @@
 {
-  "name": "LinkWise - Penyingkat URL & Pembuat Kode QR",
-  "short_name": "LinkWise",
-  "description": "Singkatkan URL panjang dan buat kode QR dengan mudah menggunakan LinkWise. Aplikasi SSG Next.js.",
+  "name": "QR Wise - Pembuat Kode QR Mudah",
+  "short_name": "QR Wise",
+  "description": "Buat kode QR dari URL dengan mudah menggunakan QR Wise.",
   "icons": [
     {
-      "src": "https://placehold.co/192x192.png",
+      "src": "/logo.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "https://placehold.co/512x512.png",
+      "src": "/logo.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "https://placehold.co/192x192.png?purpose=maskable",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "https://placehold.co/512x512.png?purpose=maskable",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
-  "theme_color": "#29ABE2",
-  "background_color": "#F0F8FF",
+  "theme_color": "#F0F8FF",
+  "background_color": "#FFFFFF",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait"

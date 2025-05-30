@@ -27,6 +27,10 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -50,11 +54,7 @@ export default function RootLayout({
     <html lang="id">
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
-        <link
-          rel="apple-touch-icon"
-          href="https://placehold.co/180x180.png"
-          data-ai-hint="logo aplikasi"
-        />
+        {/* apple-touch-icon is now handled by metadata.icons.apple */}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}>
         {children}
