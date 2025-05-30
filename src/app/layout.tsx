@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({ // Corrected instantiation
 });
 
 export const metadata: Metadata = {
-  title: 'LinkWise - URL Shortener & QR Code Generator',
-  description: 'Shorten long URLs and generate QR codes easily with LinkWise. An SSG Next.js application.',
+  title: 'LinkWise - Penyingkat URL & Pembuat Kode QR',
+  description: 'Singkatkan URL panjang dan buat kode QR dengan mudah menggunakan LinkWise. Aplikasi SSG Next.js.',
 };
 
 export default function RootLayout({
@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="id">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}>
         {children}
         <Toaster />
