@@ -4,7 +4,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NextImage from 'next/image';
-import { Link2, QrCode as QrCodeIcon, RefreshCw } from 'lucide-react';
+import { QrCode as QrCodeIcon, RefreshCw } from 'lucide-react'; // Link2 tidak lagi digunakan
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,14 +16,13 @@ export default function HomePageContent() {
   const [longUrl, setLongUrl] = useState<string>('');
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isRedirecting, setIsRedirecting] = useState<boolean>(true); // Tetap ada untuk kompatibilitas URL lama
+  const [isRedirecting, setIsRedirecting] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
 
-  // Penanganan pengalihan dari URL lama /?url=... (opsional, bisa dihapus jika tidak relevan lagi)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlToRedirectEncoded = searchParams.get('url');
@@ -85,20 +84,80 @@ export default function HomePageContent() {
     setIsLoading(true);
 
     try {
-      // Langsung gunakan longUrl untuk data QR code
-      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(longUrl)}`;
-      setQrCodeDataUrl(qrApiUrl);
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(longUrl)}&format=png&ecc=H`; // Request PNG dan Error Correction High
 
-      toast({
-        title: 'Kode QR Dibuat!',
-        description: 'Kode QR untuk URL Anda telah berhasil dibuat.',
+      const qrImage = new Image();
+      qrImage.crossOrigin = "Anonymous"; 
+
+      const logoImage = new Image();
+      logoImage.crossOrigin = "Anonymous";
+      logoImage.src = '/logo.png'; // Pastikan logo.png ada di folder public
+
+      Promise.all([
+        new Promise<void>((resolve, reject) => {
+            qrImage.onload = () => resolve();
+            qrImage.onerror = () => reject(new Error('Gagal memuat gambar kode QR.'));
+            qrImage.src = qrApiUrl;
+        }),
+        new Promise<void>((resolve, reject) => {
+            logoImage.onload = () => resolve();
+            logoImage.onerror = () => reject(new Error('Gagal memuat gambar logo. Pastikan logo.png ada di folder /public.'));
+        })
+      ]).then(() => {
+          const canvas = document.createElement('canvas');
+          const qrSize = 200; 
+          canvas.width = qrSize;
+          canvas.height = qrSize;
+          const ctx = canvas.getContext('2d');
+
+          if (!ctx) {
+              setErrorMessage('Gagal membuat canvas untuk kode QR.');
+              setIsLoading(false);
+              return;
+          }
+
+          // Gambar kode QR
+          ctx.drawImage(qrImage, 0, 0, qrSize, qrSize);
+
+          // Hitung ukuran dan posisi logo
+          const logoSizePercentage = 0.25; // Logo mengambil 25% dari lebar QR
+          const logoActualWidth = qrSize * logoSizePercentage;
+          // Sesuaikan tinggi logo berdasarkan rasio aspek asli logo
+          const logoAspectRatio = logoImage.naturalWidth / logoImage.naturalHeight;
+          const logoActualHeight = logoActualWidth / logoAspectRatio;
+
+          const logoMargin = 5; // Padding putih di sekitar logo
+          
+          const bgRectWidth = logoActualWidth + logoMargin * 2;
+          const bgRectHeight = logoActualHeight + logoMargin * 2;
+          const bgRectX = (qrSize - bgRectWidth) / 2;
+          const bgRectY = (qrSize - bgRectHeight) / 2;
+
+          // Gambar latar belakang putih untuk logo (padding)
+          ctx.fillStyle = 'white';
+          ctx.fillRect(bgRectX, bgRectY, bgRectWidth, bgRectHeight);
+          
+          // Gambar logo
+          const logoX = bgRectX + logoMargin;
+          const logoY = bgRectY + logoMargin;
+          ctx.drawImage(logoImage, logoX, logoY, logoActualWidth, logoActualHeight);
+
+          setQrCodeDataUrl(canvas.toDataURL('image/png'));
+          toast({
+              title: 'Kode QR Dibuat!',
+              description: 'Kode QR dengan logo untuk URL Anda telah berhasil dibuat.',
+          });
+          setIsLoading(false);
+      }).catch(error => {
+          console.error('Kesalahan saat memuat gambar untuk kode QR:', error);
+          setErrorMessage(error.message || 'Gagal memuat gambar untuk kode QR.');
+          setIsLoading(false);
       });
 
     } catch (error: any) {
       console.error('Kesalahan saat membuat kode QR:', error);
       setErrorMessage(error.message || 'Gagal membuat kode QR. Silakan coba lagi.');
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Pastikan di set false jika ada error sinkron awal
     }
   };
 
@@ -121,7 +180,7 @@ export default function HomePageContent() {
                 <CardTitle className="text-4xl font-bold text-primary tracking-tight">QR Wise</CardTitle>
             </div>
             <CardDescription className="text-muted-foreground text-base">
-              Buat kode QR dari URL Anda dengan mudah.
+              Buat kode QR dari URL Anda dengan mudah, kini dengan logo!
             </CardDescription>
           </CardHeader>
           <CardContent className="px-6 sm:px-8">
@@ -165,17 +224,17 @@ export default function HomePageContent() {
                 <div className="flex justify-center p-4 bg-muted rounded-lg border border-border">
                   <NextImage
                     src={qrCodeDataUrl}
-                    alt="Kode QR untuk URL yang dimasukkan"
+                    alt="Kode QR untuk URL yang dimasukkan dengan logo"
                     width={180}
                     height={180}
                     className="rounded-md"
-                    data-ai-hint="qrcode pola"
+                    data-ai-hint="qrcode logo" // Updated hint
                   />
                 </div>
                 <Button variant="outline" onClick={() => {
                     const link = document.createElement('a');
                     link.href = qrCodeDataUrl; 
-                    link.download = 'QRWise-KodeQR.png';
+                    link.download = 'QRWise-KodeQR-dengan-Logo.png'; // Updated filename
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
@@ -194,5 +253,3 @@ export default function HomePageContent() {
     </>
   );
 }
-
-    
