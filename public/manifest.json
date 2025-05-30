@@ -2,23 +2,32 @@
   "name": "QR Wise - Pembuat Kode QR Mudah",
   "short_name": "QR Wise",
   "description": "Buat kode QR dari URL dengan mudah menggunakan QR Wise.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F0F8FF",
+  "theme_color": "#29ABE2",
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "/favicon.ico",
+      "sizes": "64x64 48x48 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/logo.png",
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
     }
-  ],
-  "theme_color": "#F0F8FF",
-  "background_color": "#FFFFFF",
-  "start_url": "/",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }

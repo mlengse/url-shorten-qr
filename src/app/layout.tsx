@@ -28,8 +28,9 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
   },
 };
 
@@ -54,7 +55,6 @@ export default function RootLayout({
     <html lang="id">
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
-        {/* apple-touch-icon is now handled by metadata.icons.apple */}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}>
         {children}
