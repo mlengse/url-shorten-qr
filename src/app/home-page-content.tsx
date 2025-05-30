@@ -4,7 +4,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NextImage from 'next/image';
-import { Copy, Link2, QrCode as QrCodeIcon, ExternalLink, RefreshCw } from 'lucide-react';
+import { Link2, QrCode as QrCodeIcon, RefreshCw } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,17 +14,16 @@ import { Label } from '@/components/ui/label';
 
 export default function HomePageContent() {
   const [longUrl, setLongUrl] = useState<string>('');
-  const [shortenedUrl, setShortenedUrl] = useState<string | null>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isRedirecting, setIsRedirecting] = useState<boolean>(true);
+  const [isRedirecting, setIsRedirecting] = useState<boolean>(true); // Tetap ada untuk kompatibilitas URL lama
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
 
-  // Penanganan pengalihan dari URL lama /?url=...
+  // Penanganan pengalihan dari URL lama /?url=... (opsional, bisa dihapus jika tidak relevan lagi)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlToRedirectEncoded = searchParams.get('url');
@@ -33,28 +32,27 @@ export default function HomePageContent() {
           const decodedUrl = decodeURIComponent(urlToRedirectEncoded);
           if ((decodedUrl.startsWith('http://') || decodedUrl.startsWith('https://')) && isValidUrl(decodedUrl)) {
             window.location.href = decodedUrl;
-            // Tetap isRedirecting true sampai redirect selesai
           } else {
             toast({
                 title: 'Tautan Lama Tidak Valid',
                 description: 'Tautan yang diberikan bukan URL yang valid.',
                 variant: 'destructive',
             });
-            router.replace('/'); // Hapus parameter 'url' yang tidak valid
+            router.replace('/');
             setIsRedirecting(false);
           }
         } catch (error) {
           console.error('Gagal mendekode URL lama untuk pengalihan:', error);
           toast({
             title: 'Kesalahan Tautan Lama',
-            description: 'Tidak dapat memproses tautan lama. Pastikan tautan tidak rusak.',
+            description: 'Tidak dapat memproses tautan lama.',
             variant: 'destructive',
           });
           router.replace('/');
           setIsRedirecting(false);
         }
       } else {
-        setIsRedirecting(false); // Tidak ada parameter 'url', tidak ada pengalihan
+        setIsRedirecting(false);
       }
     }
   }, [searchParams, router, toast]);
@@ -72,7 +70,6 @@ export default function HomePageContent() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage(null);
-    setShortenedUrl(null);
     setQrCodeDataUrl(null);
 
     if (!longUrl) {
@@ -88,51 +85,20 @@ export default function HomePageContent() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/shorten', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ longUrl }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Gagal membuat tautan pendek.');
-      }
-
-      const data = await response.json();
-      setShortenedUrl(data.shortUrl);
-
-      // Membuat URL untuk QR Code API menggunakan data.qrData (yang seharusnya sama dengan data.shortUrl)
-      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.qrData)}`;
+      // Langsung gunakan longUrl untuk data QR code
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(longUrl)}`;
       setQrCodeDataUrl(qrApiUrl);
 
+      toast({
+        title: 'Kode QR Dibuat!',
+        description: 'Kode QR untuk URL Anda telah berhasil dibuat.',
+      });
+
     } catch (error: any) {
-      console.error('Kesalahan saat membuat tautan pendek atau kode QR:', error);
-      setErrorMessage(error.message || 'Gagal memproses URL. Silakan coba lagi.');
+      console.error('Kesalahan saat membuat kode QR:', error);
+      setErrorMessage(error.message || 'Gagal membuat kode QR. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleCopyToClipboard = () => {
-    if (shortenedUrl) {
-      navigator.clipboard.writeText(shortenedUrl)
-        .then(() => {
-          toast({
-            title: 'Tersalin!',
-            description: 'URL yang dipersingkat disalin ke clipboard.',
-          });
-        })
-        .catch(err => {
-          console.error('Gagal menyalin:', err);
-          toast({
-            title: 'Kesalahan',
-            description: 'Gagal menyalin URL.',
-            variant: 'destructive',
-          });
-        });
     }
   };
 
@@ -151,27 +117,27 @@ export default function HomePageContent() {
         <Card className="w-full max-w-lg shadow-xl rounded-xl">
           <CardHeader className="text-center">
             <div className="flex items-center justify-center mb-3">
-                <Link2 className="h-10 w-10 mr-3 text-primary" />
-                <CardTitle className="text-4xl font-bold text-primary tracking-tight">LinkWise</CardTitle>
+                <QrCodeIcon className="h-10 w-10 mr-3 text-primary" />
+                <CardTitle className="text-4xl font-bold text-primary tracking-tight">QR Wise</CardTitle>
             </div>
             <CardDescription className="text-muted-foreground text-base">
-              Singkatkan URL panjang Anda dengan mudah dan buat kode QR yang dapat dibagikan.
+              Buat kode QR dari URL Anda dengan mudah.
             </CardDescription>
           </CardHeader>
           <CardContent className="px-6 sm:px-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="longUrl" className="text-foreground font-medium text-sm">Masukkan URL Panjang</Label>
+                <Label htmlFor="longUrl" className="text-foreground font-medium text-sm">Masukkan URL</Label>
                 <Input
                   id="longUrl"
                   type="url"
                   name="longUrl"
-                  placeholder="misalnya, https://example.com/url/sangat/panjang/untuk/disingkat"
+                  placeholder="misalnya, https://example.com/halaman/penting"
                   value={longUrl}
                   onChange={(e) => setLongUrl(e.target.value)}
                   disabled={isLoading}
                   className="h-12 text-base focus:ring-primary focus:border-primary"
-                  aria-label="Input URL panjang"
+                  aria-label="Input URL untuk Kode QR"
                 />
               </div>
               {errorMessage && (
@@ -185,70 +151,48 @@ export default function HomePageContent() {
                   </>
                 ) : (
                   <>
-                    <Link2 className="mr-2 h-5 w-5" /> Singkatkan & Buat
+                    <QrCodeIcon className="mr-2 h-5 w-5" /> Buat Kode QR
                   </>
                 )}
               </Button>
             </form>
           </CardContent>
 
-          {(shortenedUrl || qrCodeDataUrl) && (
+          {qrCodeDataUrl && (
             <CardFooter className="flex flex-col items-center space-y-8 pt-8 px-6 sm:px-8">
-              {shortenedUrl && (
-                <div className="w-full space-y-3 text-center">
-                  <h3 className="text-xl font-semibold text-foreground">Tautan Singkat Anda</h3>
-                  <div className="flex items-center space-x-2 p-3 bg-muted rounded-lg border border-border">
-                    <a href={shortenedUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate flex-grow text-left text-sm sm:text-base" aria-label="URL yang dipersingkat">
-                      {shortenedUrl}
-                    </a>
-                    <Button variant="ghost" size="icon" onClick={handleCopyToClipboard} aria-label="Salin URL yang dipersingkat" className="text-primary hover:bg-primary/10">
-                      <Copy className="h-5 w-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => window.open(shortenedUrl, '_blank')} aria-label="Buka URL yang dipersingkat di tab baru" className="text-primary hover:bg-primary/10">
-                       <ExternalLink className="h-5 w-5" />
-                    </Button>
-                  </div>
+              <div className="w-full space-y-4 text-center">
+                <h3 className="text-xl font-semibold text-foreground">Kode QR Anda</h3>
+                <div className="flex justify-center p-4 bg-muted rounded-lg border border-border">
+                  <NextImage
+                    src={qrCodeDataUrl}
+                    alt="Kode QR untuk URL yang dimasukkan"
+                    width={180}
+                    height={180}
+                    className="rounded-md"
+                    data-ai-hint="qrcode pola"
+                  />
                 </div>
-              )}
-
-              {qrCodeDataUrl && (
-                <div className="w-full space-y-4 text-center">
-                  <h3 className="text-xl font-semibold text-foreground">Kode QR</h3>
-                  <div className="flex justify-center p-4 bg-muted rounded-lg border border-border">
-                    <NextImage
-                      src={qrCodeDataUrl}
-                      alt="Kode QR untuk URL yang dipersingkat"
-                      width={180}
-                      height={180}
-                      className="rounded-md"
-                      data-ai-hint="qrcode pola"
-                    />
-                  </div>
-                  <Button variant="outline" onClick={() => {
-                      const link = document.createElement('a');
-                      // Tambahkan parameter &download=1 jika API qrserver mendukungnya untuk memicu unduhan
-                      // Beberapa API mungkin memerlukan nama file di path atau header khusus.
-                      // Untuk api.qrserver.com, menambahkan &download=1 (atau nama parameter lain) biasanya tidak secara otomatis
-                      // mengatur nama file unduhan. Nama file diatur oleh browser atau perlu di-proxy via server.
-                      // Namun, untuk kesederhanaan, kita akan mengasumsikan nama default atau pengguna bisa "Save image as".
-                      // Jika ingin nama file kustom, kita perlu mengunduh gambar ke Blob, lalu buat Object URL.
-                      link.href = qrCodeDataUrl; // Langsung gunakan URL gambar dari API
-                      link.download = 'LinkWise-KodeQR.png'; // Ini adalah *saran* nama file untuk browser
-                      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-                  }} className="w-full h-11 border-primary text-primary hover:bg-primary/10 hover:text-primary font-medium rounded-md">
-                    <QrCodeIcon className="mr-2 h-5 w-5" /> Unduh Kode QR
-                  </Button>
-                </div>
-              )}
+                <Button variant="outline" onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = qrCodeDataUrl; 
+                    link.download = 'QRWise-KodeQR.png';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }} className="w-full h-11 border-primary text-primary hover:bg-primary/10 hover:text-primary font-medium rounded-md">
+                  <QrCodeIcon className="mr-2 h-5 w-5" /> Unduh Kode QR
+                </Button>
+              </div>
             </CardFooter>
           )}
         </Card>
         <footer className="text-center mt-8 text-muted-foreground text-sm">
-          <p>&copy; {new Date().getFullYear()} LinkWise. Menyederhanakan tautan Anda.</p>
+          <p>&copy; {new Date().getFullYear()} QR Wise. Membuat kode QR jadi mudah.</p>
+          <p className="text-xs mt-1">Sebelumnya LinkWise.</p>
         </footer>
       </main>
     </>
   );
 }
+
+    
