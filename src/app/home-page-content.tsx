@@ -19,43 +19,42 @@ export default function HomePageContent() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isRedirecting, setIsRedirecting] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [pageOrigin, setPageOrigin] = useState<string>('');
-
+  
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
 
+  // Penanganan pengalihan dari URL lama /?url=...
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setPageOrigin(window.location.origin);
-      const urlToRedirect = searchParams.get('url');
-      if (urlToRedirect) {
+      const urlToRedirectEncoded = searchParams.get('url');
+      if (urlToRedirectEncoded) {
         try {
-          // Menggunakan decodeURIComponent sebagai ganti atob
-          const decodedUrl = decodeURIComponent(urlToRedirect);
+          const decodedUrl = decodeURIComponent(urlToRedirectEncoded);
           if ((decodedUrl.startsWith('http://') || decodedUrl.startsWith('https://')) && isValidUrl(decodedUrl)) {
             window.location.href = decodedUrl;
+            // Tetap isRedirecting true sampai redirect selesai
           } else {
             toast({
-                title: 'Tautan Tidak Valid',
+                title: 'Tautan Lama Tidak Valid',
                 description: 'Tautan yang diberikan bukan URL yang valid.',
                 variant: 'destructive',
             });
-            router.replace('/');
+            router.replace('/'); // Hapus parameter 'url' yang tidak valid
             setIsRedirecting(false);
           }
         } catch (error) {
-          console.error('Gagal mendekode URL untuk pengalihan:', error);
+          console.error('Gagal mendekode URL lama untuk pengalihan:', error);
           toast({
-            title: 'Kesalahan',
-            description: 'Tidak dapat memproses tautan. Pastikan tautan tidak rusak.',
+            title: 'Kesalahan Tautan Lama',
+            description: 'Tidak dapat memproses tautan lama. Pastikan tautan tidak rusak.',
             variant: 'destructive',
           });
           router.replace('/');
           setIsRedirecting(false);
         }
       } else {
-        setIsRedirecting(false);
+        setIsRedirecting(false); // Tidak ada parameter 'url', tidak ada pengalihan
       }
     }
   }, [searchParams, router, toast]);
@@ -89,22 +88,29 @@ export default function HomePageContent() {
     setIsLoading(true);
 
     try {
-      if (!pageOrigin) {
-        setErrorMessage('Tidak dapat menentukan asal halaman. Silakan segarkan.');
-        setIsLoading(false);
-        return;
-      }
-      // Menggunakan encodeURIComponent sebagai ganti btoa
-      const encodedUrl = encodeURIComponent(longUrl);
-      const shortUrl = `${pageOrigin}/?url=${encodedUrl}`;
-      setShortenedUrl(shortUrl);
+      const response = await fetch('/api/shorten', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ longUrl }),
+      });
 
-      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shortUrl)}`;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Gagal membuat tautan pendek.');
+      }
+
+      const data = await response.json();
+      setShortenedUrl(data.shortUrl);
+
+      // Membuat URL untuk QR Code API menggunakan data.qrData (yang seharusnya sama dengan data.shortUrl)
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.qrData)}`;
       setQrCodeDataUrl(qrApiUrl);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Kesalahan saat membuat tautan pendek atau kode QR:', error);
-      setErrorMessage('Gagal memproses URL. Silakan coba lagi.');
+      setErrorMessage(error.message || 'Gagal memproses URL. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
     }
@@ -220,11 +226,17 @@ export default function HomePageContent() {
                   </div>
                   <Button variant="outline" onClick={() => {
                       const link = document.createElement('a');
-                      link.href = qrCodeDataUrl + "&download=1";
-                      link.download = 'LinkWise-KodeQR.png';
+                      // Tambahkan parameter &download=1 jika API qrserver mendukungnya untuk memicu unduhan
+                      // Beberapa API mungkin memerlukan nama file di path atau header khusus.
+                      // Untuk api.qrserver.com, menambahkan &download=1 (atau nama parameter lain) biasanya tidak secara otomatis
+                      // mengatur nama file unduhan. Nama file diatur oleh browser atau perlu di-proxy via server.
+                      // Namun, untuk kesederhanaan, kita akan mengasumsikan nama default atau pengguna bisa "Save image as".
+                      // Jika ingin nama file kustom, kita perlu mengunduh gambar ke Blob, lalu buat Object URL.
+                      link.href = qrCodeDataUrl; // Langsung gunakan URL gambar dari API
+                      link.download = 'LinkWise-KodeQR.png'; // Ini adalah *saran* nama file untuk browser
                       document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
+      link.click();
+      document.body.removeChild(link);
                   }} className="w-full h-11 border-primary text-primary hover:bg-primary/10 hover:text-primary font-medium rounded-md">
                     <QrCodeIcon className="mr-2 h-5 w-5" /> Unduh Kode QR
                   </Button>
