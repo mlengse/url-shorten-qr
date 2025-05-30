@@ -17,7 +17,7 @@ export default function HomePageContent() {
   const [shortenedUrl, setShortenedUrl] = useState<string | null>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isRedirecting, setIsRedirecting] = useState<boolean>(true); 
+  const [isRedirecting, setIsRedirecting] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pageOrigin, setPageOrigin] = useState<string>('');
 
@@ -31,7 +31,8 @@ export default function HomePageContent() {
       const urlToRedirect = searchParams.get('url');
       if (urlToRedirect) {
         try {
-          const decodedUrl = atob(urlToRedirect);
+          // Menggunakan decodeURIComponent sebagai ganti atob
+          const decodedUrl = decodeURIComponent(urlToRedirect);
           if ((decodedUrl.startsWith('http://') || decodedUrl.startsWith('https://')) && isValidUrl(decodedUrl)) {
             window.location.href = decodedUrl;
           } else {
@@ -40,21 +41,21 @@ export default function HomePageContent() {
                 description: 'Tautan yang diberikan bukan URL yang valid.',
                 variant: 'destructive',
             });
-            router.replace('/'); 
+            router.replace('/');
             setIsRedirecting(false);
           }
         } catch (error) {
           console.error('Gagal mendekode URL untuk pengalihan:', error);
           toast({
             title: 'Kesalahan',
-            description: 'Tidak dapat memproses tautan.',
+            description: 'Tidak dapat memproses tautan. Pastikan tautan tidak rusak.',
             variant: 'destructive',
           });
           router.replace('/');
           setIsRedirecting(false);
         }
       } else {
-        setIsRedirecting(false); 
+        setIsRedirecting(false);
       }
     }
   }, [searchParams, router, toast]);
@@ -93,7 +94,8 @@ export default function HomePageContent() {
         setIsLoading(false);
         return;
       }
-      const encodedUrl = btoa(longUrl);
+      // Menggunakan encodeURIComponent sebagai ganti btoa
+      const encodedUrl = encodeURIComponent(longUrl);
       const shortUrl = `${pageOrigin}/?url=${encodedUrl}`;
       setShortenedUrl(shortUrl);
 
@@ -218,7 +220,7 @@ export default function HomePageContent() {
                   </div>
                   <Button variant="outline" onClick={() => {
                       const link = document.createElement('a');
-                      link.href = qrCodeDataUrl + "&download=1"; 
+                      link.href = qrCodeDataUrl + "&download=1";
                       link.download = 'LinkWise-KodeQR.png';
                       document.body.appendChild(link);
                       link.click();
@@ -235,7 +237,6 @@ export default function HomePageContent() {
           <p>&copy; {new Date().getFullYear()} LinkWise. Menyederhanakan tautan Anda.</p>
         </footer>
       </main>
-      {/* Toaster component removed from here as it's already in layout.tsx */}
     </>
   );
 }
